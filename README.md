@@ -1,6 +1,7 @@
 # folked from  https://github.com/ChainSafe/chainbridge-solidity
 
-This repository is folked from https://github.com/ChainSafe/chainbridge-solidity and modified to support briging between ERC20 on ethereum network and native Ethereum token on avalance subnet.
+This repository is folked from https://github.com/ChainSafe/chainbridge-solidity and modified to support briging between ERC20 on ethereum network and native Ethereum token on avalanche subnet.
+
 
 
 # chainbridge-solidity
