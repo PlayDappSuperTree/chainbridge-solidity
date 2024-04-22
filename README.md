@@ -1,6 +1,9 @@
-# chainbridge-solidity
+# folked from  https://github.com/ChainSafe/chainbridge-solidity
 
-[![Coverage Status](https://coveralls.io/repos/github/ChainSafe/chainbridge-solidity/badge.svg?branch=master)](https://coveralls.io/github/ChainSafe/chainbridge-solidity?branch=master)
+This repository is folked from https://github.com/ChainSafe/chainbridge-solidity and modified to support briging between ERC20 on ethereum network and native Ethereum token on avalance subnet.
+
+
+# chainbridge-solidity
 
 ChainBridge uses Solidity smart contracts to enable transfers to and from EVM compatible chains. These contracts consist of a core bridge contract (Bridge.sol) and a set of handler contracts (ERC20Handler.sol, ERC721Handler.sol, and GenericHandler.sol). The bridge contract is responsible for initiating, voting on, and executing proposed transfers. The handlers are used by the bridge contract to interact with other existing contracts.
 

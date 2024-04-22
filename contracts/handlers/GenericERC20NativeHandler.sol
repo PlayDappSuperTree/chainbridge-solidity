@@ -2,48 +2,38 @@ pragma solidity 0.6.4;
 pragma experimental ABIEncoderV2;
 
 import "../interfaces/IGenericHandler.sol";
-
+import "../ERC20Safe.sol";
+import "./HandlerHelpers.sol";
+import "@openzeppelin/contracts/introspection/ERC165.sol";
+import "../interfaces/IERC20Permit.sol";
 /**
     @title Handles generic deposits and deposit executions.
     @author ChainSafe Systems.
     @notice This contract is intended to be used with the Bridge contract.
  */
-contract GenericHandler is IGenericHandler {
-    address public _bridgeAddress;
+contract GenericERC20NativeHandler is ERC165, IGenericHandler, HandlerHelpers, ERC20Safe {
 
     struct DepositRecord {
-        uint8   _destinationChainID;
+        uint8 _destinationChainID;
         address _depositer;
         bytes32 _resourceID;
-        bytes   _metaData;
+        bytes _metaData;
     }
 
     // depositNonce => Deposit Record
-    mapping (uint8 => mapping(uint64 => DepositRecord)) public _depositRecords;
+    mapping(uint8 => mapping(uint64 => DepositRecord)) public _depositRecords;
 
     // resourceID => contract address
-    mapping (bytes32 => address) public _resourceIDToContractAddress;
+    mapping(bytes32 => address) public _resourceIDToContractAddress;
 
     // contract address => resourceID
-    mapping (address => bytes32) public _contractAddressToResourceID;
+    mapping(address => bytes32) public _contractAddressToResourceID;
 
     // contract address => deposit function signature
-    mapping (address => bytes4) public _contractAddressToDepositFunctionSignature;
+    mapping(address => bytes4) public _contractAddressToDepositFunctionSignature;
 
     // contract address => execute proposal function signature
-    mapping (address => bytes4) public _contractAddressToExecuteFunctionSignature;
-
-    // token contract address => is whitelisted
-    mapping (address => bool) public _contractWhitelist;
-
-    modifier onlyBridge() {
-        _onlyBridge();
-        _;
-    }
-
-    function _onlyBridge() private {
-         require(msg.sender == _bridgeAddress, "sender must be bridge contract");
-    }
+    mapping(address => bytes4) public _contractAddressToExecuteFunctionSignature;
 
     /**
         @param bridgeAddress Contract address of previously deployed Bridge.
@@ -63,12 +53,15 @@ contract GenericHandler is IGenericHandler {
         is the intended address for {initialDepositFunctionSignatures}[0].
      */
     constructor(
-        address          bridgeAddress,
+        address bridgeAddress,
         bytes32[] memory initialResourceIDs,
         address[] memory initialContractAddresses,
         bytes4[]  memory initialDepositFunctionSignatures,
         bytes4[]  memory initialExecuteFunctionSignatures
     ) public {
+
+        _registerInterface(this.getDepositFunSig.selector);
+
         require(initialResourceIDs.length == initialContractAddresses.length,
             "initialResourceIDs and initialContractAddresses len mismatch");
 
@@ -81,7 +74,7 @@ contract GenericHandler is IGenericHandler {
         _bridgeAddress = bridgeAddress;
 
         for (uint256 i = 0; i < initialResourceIDs.length; i++) {
-            _setResource(
+            _setGenericResource(
                 initialResourceIDs[i],
                 initialContractAddresses[i],
                 initialDepositFunctionSignatures[i],
@@ -120,9 +113,11 @@ contract GenericHandler is IGenericHandler {
         address contractAddress,
         bytes4 depositFunctionSig,
         bytes4 executeFunctionSig
+
     ) external onlyBridge override {
 
-        _setResource(resourceID, contractAddress, depositFunctionSig, executeFunctionSig);
+        _setGenericResource(resourceID, contractAddress, depositFunctionSig, executeFunctionSig);
+
     }
 
     /**
@@ -139,33 +134,25 @@ contract GenericHandler is IGenericHandler {
         {metaData} is expected to consist of needed function arguments.
      */
     function deposit(bytes32 resourceID, uint8 destinationChainID, uint64 depositNonce, address depositer, bytes calldata data) external onlyBridge {
-        bytes32      lenMetadata;
-        bytes memory metadata;
 
-        assembly {
-            // Load length of metadata from data + 64
-            lenMetadata  := calldataload(0xC4)
-            // Load free memory pointer
-            metadata := mload(0x40)
 
-            mstore(0x40, add(0x20, add(metadata, lenMetadata)))
+        bytes32 _resourceID;
+        address _depositer;
+        uint256 amount;
+        uint256 lenRecipientAddress;
+        address _recipientAddress;
 
-            // func sig (4) + destinationChainId (padded to 32) + depositNonce (32) + depositor (32) +
-            // bytes length (32) + resourceId (32) + length (32) = 0xC4
 
-            calldatacopy(
-                metadata, // copy to metadata
-                0xC4, // copy from calldata after metadata length declaration @0xC4
-                sub(calldatasize(), 0xC4)      // copy size (calldatasize - (0xC4 + the space metaData takes up))
-            )
-        }
+        (_resourceID, _depositer, amount, lenRecipientAddress, _recipientAddress) = abi.decode(data, (bytes32, address, uint256, uint256, address));
 
         address contractAddress = _resourceIDToContractAddress[resourceID];
         require(_contractWhitelist[contractAddress], "provided contractAddress is not whitelisted");
 
         bytes4 sig = _contractAddressToDepositFunctionSignature[contractAddress];
+
         if (sig != bytes4(0)) {
-            bytes memory callData = abi.encodePacked(sig, metadata);
+
+            bytes memory callData = abi.encodeWithSelector(sig, data);
             (bool success,) = contractAddress.call(callData);
             require(success, "delegatecall to contractAddress failed");
         }
@@ -174,8 +161,56 @@ contract GenericHandler is IGenericHandler {
             destinationChainID,
             depositer,
             resourceID,
-            metadata
+            data
         );
+    }
+
+    function depositWithPermit(bytes32 resourceID, uint8 destinationChainID, uint64 depositNonce, address depositer, bytes   calldata data) external onlyBridge {
+        bytes memory recipientAddress;
+        uint256 amount;
+        uint256 lenRecipientAddress;
+        address tokenAddress = _resourceIDToTokenContractAddress[resourceID];
+
+        {
+
+            address _recipientAddress;
+            {
+                uint256 deadline;
+                uint256 _v;
+                uint256 _r;
+                uint256 _s;
+
+                (,, amount, lenRecipientAddress, _recipientAddress, deadline, _v, _r, _s) =
+                abi.decode(data, (bytes32, address, uint256, uint256, address, uint256, uint256, uint256, uint256));
+
+                recipientAddress = abi.encodePacked(_recipientAddress);
+
+                require(_contractWhitelist[tokenAddress], "provided tokenAddress is not whitelisted");
+
+                if (tokenAddress != address(0)) {
+                    IERC20Permit erc20 = IERC20Permit(tokenAddress);
+                    erc20.permit(depositer, address(this), amount, deadline, uint8(_v), bytes32(_r), bytes32(_s));
+                }
+            }
+
+            address contractAddress = _resourceIDToContractAddress[resourceID];
+            bytes4 sig = _contractAddressToDepositFunctionSignature[contractAddress];
+
+
+            if (sig != bytes4(0)) {
+
+                bytes memory callData = abi.encodeWithSelector(sig, data);
+                (bool success,) = contractAddress.call(callData);
+                require(success, "delegatecall to contractAddress failed");
+            }
+
+            _depositRecords[destinationChainID][depositNonce] = DepositRecord(
+                destinationChainID,
+                depositer,
+                resourceID,
+                data
+            );
+        }
     }
 
     /**
@@ -189,36 +224,21 @@ contract GenericHandler is IGenericHandler {
         {metaData} is expected to consist of needed function arguments.
      */
     function executeProposal(bytes32 resourceID, bytes calldata data) external onlyBridge {
-        bytes memory metaData;
-        assembly {
-
-            // metadata has variable length
-            // load free memory pointer to store metadata
-            metaData := mload(0x40)
-            // first 32 bytes of variable length in storage refer to length
-            let lenMeta := calldataload(0x64)
-            mstore(0x40, add(0x60, add(metaData, lenMeta)))
-
-            // in the calldata, metadata is stored @0x64 after accounting for function signature, and 2 previous params
-            calldatacopy(
-                metaData,                     // copy to metaData
-                0x64,                        // copy from calldata after data length declaration at 0x64
-                sub(calldatasize(), 0x64)   // copy size (calldatasize - 0x64)
-            )
-        }
 
         address contractAddress = _resourceIDToContractAddress[resourceID];
         require(_contractWhitelist[contractAddress], "provided contractAddress is not whitelisted");
 
         bytes4 sig = _contractAddressToExecuteFunctionSignature[contractAddress];
+
+
         if (sig != bytes4(0)) {
-            bytes memory callData = abi.encodePacked(sig, metaData);
+            bytes memory callData = abi.encodeWithSelector(sig, data);
             (bool success,) = contractAddress.call(callData);
             require(success, "delegatecall to contractAddress failed");
         }
     }
 
-    function _setResource(
+    function _setGenericResource(
         bytes32 resourceID,
         address contractAddress,
         bytes4 depositFunctionSig,
@@ -228,12 +248,58 @@ contract GenericHandler is IGenericHandler {
         _contractAddressToResourceID[contractAddress] = resourceID;
         _contractAddressToDepositFunctionSignature[contractAddress] = depositFunctionSig;
         _contractAddressToExecuteFunctionSignature[contractAddress] = executeFunctionSig;
-
         _contractWhitelist[contractAddress] = true;
+    }
+
+    function handleERC20Deposit(bytes calldata data) external {
+        require(msg.sender == address(this), "handleERC20Deposit can only be called by this contract");
+
+        bytes32 resourceID;
+        address depositer;
+        uint256 amount;
+        uint256 lenRecipientAddress;
+        address _recipientAddress;
+
+        (resourceID, depositer, amount, lenRecipientAddress, _recipientAddress) = abi.decode(data, (bytes32, address, uint256, uint256, address));
+        address tokenAddress = _resourceIDToTokenContractAddress[resourceID];
+        if (_burnList[tokenAddress]) {
+            burnERC20(tokenAddress, depositer, amount);
+        } else {
+            lockERC20(tokenAddress, depositer, address(this), amount);
+        }
+    }
+
+    function handleERC20Exit(bytes calldata data) external {
+        require(msg.sender == address(this), "handleERC20Deposit can only be called by this contract");
+
+        bytes32 resourceID;
+        address depositer;
+        uint256 amount;
+        uint256 lenRecipientAddress;
+        address _recipientAddress;
+
+        (, resourceID, depositer, amount, lenRecipientAddress, _recipientAddress) = abi.decode(data, (uint256, bytes32, address, uint256, uint256, address));
+
+        address tokenAddress = _resourceIDToTokenContractAddress[resourceID];
+
+        if (_burnList[tokenAddress]) {
+            mintERC20(tokenAddress, _recipientAddress, amount);
+        } else {
+            releaseERC20(tokenAddress, _recipientAddress, amount);
+        }
+    }
+
+    function contractAddressByResourceID(bytes32 resourceID) external view returns (address) {
+        return _resourceIDToContractAddress[resourceID];
     }
 
     function getDepositFunSig(bytes32 resourceID) external override view returns (bytes4) {
         address contractAddress = _resourceIDToContractAddress[resourceID];
         return _contractAddressToDepositFunctionSignature[contractAddress];
+    }
+
+
+    function getInterfaceID() public view returns (bytes4){
+        return this.getDepositFunSig.selector;
     }
 }
