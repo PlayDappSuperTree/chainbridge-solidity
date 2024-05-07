@@ -2,6 +2,7 @@ pragma solidity 0.6.4;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/presets/ERC20PresetMinterPauser.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20Burnable.sol";
 
@@ -12,17 +13,8 @@ import "@openzeppelin/contracts/token/ERC20/ERC20Burnable.sol";
  */
 contract ERC20Safe {
     using SafeMath for uint256;
+    using SafeERC20 for IERC20;
 
-    /**
-        @notice Used to transfer tokens into the safe to fund proposals.
-        @param tokenAddress Address of ERC20 to transfer.
-        @param owner Address of current token owner.
-        @param amount Amount of tokens to transfer.
-     */
-    function fundERC20(address tokenAddress, address owner, uint256 amount) public {
-        IERC20 erc20 = IERC20(tokenAddress);
-        _safeTransferFrom(erc20, owner, address(this), amount);
-    }
 
     /**
         @notice Used to gain custody of deposited token.
@@ -97,7 +89,7 @@ contract ERC20Safe {
         @param token Token instance call targets
         @param data encoded call data
      */
-    function _safeCall(IERC20 token, bytes memory data) private {        
+    function _safeCall(IERC20 token, bytes memory data) private {
         (bool success, bytes memory returndata) = address(token).call(data);
         require(success, "ERC20: call failed");
 

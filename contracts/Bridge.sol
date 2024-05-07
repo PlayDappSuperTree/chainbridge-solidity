@@ -3,18 +3,20 @@ pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "./utils/Pausable.sol";
-import "./utils/SafeMath.sol";
+import "@openzeppelin/contracts/math/SafeMath.sol";
 import "./interfaces/IDepositExecute.sol";
 import "./interfaces/IBridge.sol";
 import "./interfaces/IERCHandler.sol";
 import "./interfaces/IGenericHandler.sol";
 import "./utils/ChainId.sol";
 import "@openzeppelin/contracts/introspection/ERC165Checker.sol";
+
 /**
     @title Facilitates deposits, creation and votiing of deposit proposals, and deposit executions.
     @author ChainSafe Systems.
  */
-contract Bridge is Pausable, AccessControl, SafeMath {
+contract Bridge is Pausable, AccessControl {
+    using SafeMath for uint256;
 
     uint8   public _chainID;
     uint256 public _relayerThreshold;
@@ -133,11 +135,63 @@ contract Bridge is Pausable, AccessControl, SafeMath {
 
         for (uint i; i < initialRelayers.length; i++) {
             grantRole(RELAYER_ROLE, initialRelayers[i]);
-            _totalRelayers++;
         }
-
         _setRoleAdmin(RELEASE_ETH_FUND_ROLE, DEFAULT_ADMIN_ROLE);
+    }
 
+
+    /**
+    * @dev Grants `role` to `account`. override grantRole to increase _totalRelayers
+     *
+     * If `account` had not been already granted `role`, emits a {RoleGranted}
+     * event.
+     *
+     * Requirements:
+     *
+     * - the caller must have ``role``'s admin role.
+     */
+    function grantRole(bytes32 role, address account) public override {
+        super.grantRole(role, account);
+        if (role == RELAYER_ROLE) {
+            _totalRelayers = _totalRelayers.add(1);
+        }
+    }
+
+    /**
+        * @dev Revokes `role` from `account`. override revokeRole to decrease _totalRelayers
+     *
+     * If `account` had been granted `role`, emits a {RoleRevoked} event.
+     *
+     * Requirements:
+     *
+     * - the caller must have ``role``'s admin role.
+     */
+    function revokeRole(bytes32 role, address account) public override {
+        super.revokeRole(role, account);
+        if (role == RELAYER_ROLE) {
+            _totalRelayers = _totalRelayers.sub(1);
+        }
+    }
+
+    /**
+    * @dev Revokes `role` from the calling account. override renounceRole to decrease _totalRelayers
+     *
+     * Roles are often managed via {grantRole} and {revokeRole}: this function's
+     * purpose is to provide a mechanism for accounts to lose their privileges
+     * if they are compromised (such as when a trusted device is misplaced).
+     *
+     * If the calling account had been granted `role`, emits a {RoleRevoked}
+     * event.
+     *
+     * Requirements:
+     *
+     * - the caller must be `account`.
+     */
+    function renounceRole(bytes32 role, address account) public override {
+        super.renounceRole(role, account);
+        if (role == RELAYER_ROLE) {
+            _totalRelayers = _totalRelayers.sub(1);
+        }
     }
 
     /**
@@ -195,7 +249,6 @@ contract Bridge is Pausable, AccessControl, SafeMath {
         require(!hasRole(RELAYER_ROLE, relayerAddress), "addr already has relayer role!");
         grantRole(RELAYER_ROLE, relayerAddress);
         emit RelayerAdded(relayerAddress);
-        _totalRelayers++;
     }
 
     /**
@@ -208,7 +261,6 @@ contract Bridge is Pausable, AccessControl, SafeMath {
         require(hasRole(RELAYER_ROLE, relayerAddress), "addr doesn't have relayer role!");
         revokeRole(RELAYER_ROLE, relayerAddress);
         emit RelayerRemoved(relayerAddress);
-        _totalRelayers--;
     }
 
     /**
@@ -436,7 +488,7 @@ contract Bridge is Pausable, AccessControl, SafeMath {
             proposal._yesVotes[0] = msg.sender;
             emit ProposalEvent(chainID, depositNonce, ProposalStatus.Active, resourceID, dataHash);
         } else {
-            if (sub(block.number, proposal._proposedBlock) > _expiry) {
+            if (block.number.sub(proposal._proposedBlock) > _expiry) {
                 // if the number of blocks that has passed since this proposal was
                 // submitted exceeds the expiry threshold set, cancel the proposal
                 proposal._status = ProposalStatus.Cancelled;
@@ -478,7 +530,7 @@ contract Bridge is Pausable, AccessControl, SafeMath {
         Proposal storage proposal = _proposals[nonceAndID][dataHash];
 
         require(proposal._status != ProposalStatus.Cancelled, "Proposal already cancelled");
-        require(sub(block.number, proposal._proposedBlock) > _expiry, "Proposal not at expiry threshold");
+        require(block.number.sub(proposal._proposedBlock) > _expiry, "Proposal not at expiry threshold");
 
         proposal._status = ProposalStatus.Cancelled;
         emit ProposalEvent(chainID, depositNonce, ProposalStatus.Cancelled, proposal._resourceID, proposal._dataHash);
