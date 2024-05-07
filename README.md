@@ -2,8 +2,6 @@
 
 This repository is folked from https://github.com/ChainSafe/chainbridge-solidity and modified to support briging between ERC20 on ethereum network and native Ethereum token on avalanche subnet.
 
-
-
 # chainbridge-solidity
 
 ChainBridge uses Solidity smart contracts to enable transfers to and from EVM compatible chains. These contracts consist of a core bridge contract (Bridge.sol) and a set of handler contracts (ERC20Handler.sol, ERC721Handler.sol, and GenericHandler.sol). The bridge contract is responsible for initiating, voting on, and executing proposed transfers. The handlers are used by the bridge contract to interact with other existing contracts.
@@ -177,7 +175,6 @@ Requires `nodejs` and `npm`.
     ✓ [sanity] burnableContractAddresses should be marked true in _burnList
     ✓ [sanity] ERC721MintableInstance1 tokenID has been minted for depositerAddress
     ✓ depositAmount of ERC721MintableInstance1 tokens should have been burned (284ms)
-
 
   102 passing (1m)
 
