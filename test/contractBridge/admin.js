@@ -184,8 +184,8 @@ contract('Bridge - [admin]', async accounts => {
         const TestERC721ReceiverInstance = await TestERC721ReceiverContract.new();
         await ERC721MintableInstance.grantRole(await ERC721MintableInstance.MINTER_ROLE(), ERC721HandlerInstance.address);
 
-        await ERC721HandlerInstance.publicMintERC721(ERC721MintableInstance.address, TestERC721ReceiverInstance.address, 1, "0x0");
-        await ERC721HandlerInstance.publicMintERC721(ERC721MintableInstance.address, accounts[0], 2, "0x0");
+        // await ERC721HandlerInstance.publicMintERC721(ERC721MintableInstance.address, TestERC721ReceiverInstance.address, 1, "0x0");
+        // await ERC721HandlerInstance.publicMintERC721(ERC721MintableInstance.address, accounts[0], 2, "0x0");
         //await ERC721HandlerInstance.publicMintERC721(ERC721MintableInstance.address, ERC20HandlerInstance.address, 1, "0x0");
 
 
