@@ -6,6 +6,7 @@ const TruffleAssert = require('truffle-assertions');
 const Ethers = require('ethers');
 
 const Helpers = require('../helpers');
+const {sendAndAwait} = require("truffle/build/593.bundled");
 
 const BridgeContract = artifacts.require("Bridge");
 const ERC20MintableContract = artifacts.require("ERC20PresetMinterPauser");
@@ -33,11 +34,10 @@ contract('Bridge - [admin]', async accounts => {
         ADMIN_ROLE = await BridgeInstance.DEFAULT_ADMIN_ROLE()
     });
 
-
-
-
-    ///return
-
+    // Check chiainID of the bridge
+    it('check chainId of the bridge', async () => {
+        assert.equal(await BridgeInstance.getChainId(), chainID);
+    });
 
     // Testing pausable methods
 

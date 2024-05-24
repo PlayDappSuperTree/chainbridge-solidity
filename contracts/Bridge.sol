@@ -139,6 +139,10 @@ contract Bridge is Pausable, AccessControl {
         _setRoleAdmin(RELEASE_ETH_FUND_ROLE, DEFAULT_ADMIN_ROLE);
     }
 
+    function getChainId() external view returns (uint8) {
+        return _chainID;
+    }
+
 
     /**
     * @dev Grants `role` to `account`. override grantRole to increase _totalRelayers
