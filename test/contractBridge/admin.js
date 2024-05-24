@@ -102,9 +102,20 @@ contract('Bridge - [admin]', async accounts => {
     });
 
     it('Bridge admin should be changed to expectedBridgeAdmin', async () => {
+        assert.isTrue(await BridgeInstance.hasRole(ADMIN_ROLE, accounts[0]));
+        //cant not renounce admin anymore
+        TruffleAssert.reverts(BridgeInstance.renounceRole(ADMIN_ROLE, accounts[0]));
+
         const expectedBridgeAdmin2 = accounts[1];
-        TruffleAssert.passes(await BridgeInstance.renounceAdmin(expectedBridgeAdmin2))
+        TruffleAssert.passes(await BridgeInstance.grantRole(ADMIN_ROLE, expectedBridgeAdmin2));
+
+        //new new account has admin role
         assert.isTrue(await BridgeInstance.hasRole(ADMIN_ROLE, expectedBridgeAdmin2));
+        await BridgeInstance.revokeRole(ADMIN_ROLE, accounts[0]);
+
+        //old admin is not admin anymore
+        assert.isFalse(await BridgeInstance.hasRole(ADMIN_ROLE, accounts[0]));
+
     });
 
     // Set Handler Address

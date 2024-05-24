@@ -188,6 +188,7 @@ contract Bridge is Pausable, AccessControl {
      * - the caller must be `account`.
      */
     function renounceRole(bytes32 role, address account) public override {
+        require(role != DEFAULT_ADMIN_ROLE, "Bridge: cannot renounce admin role");
         super.renounceRole(role, account);
         if (role == RELAYER_ROLE) {
             _totalRelayers = _totalRelayers.sub(1);
@@ -202,15 +203,6 @@ contract Bridge is Pausable, AccessControl {
         return hasRole(RELAYER_ROLE, relayer);
     }
 
-    /**
-        @notice Removes admin role from {msg.sender} and grants it to {newAdmin}.
-        @notice Only callable by an address that currently has the admin role.
-        @param newAdmin Address that admin role will be granted to.
-     */
-    function renounceAdmin(address newAdmin) external onlyAdmin {
-        grantRole(DEFAULT_ADMIN_ROLE, newAdmin);
-        renounceRole(DEFAULT_ADMIN_ROLE, msg.sender);
-    }
 
     /**
         @notice Pauses deposits, proposal creation and voting, and deposit executions.

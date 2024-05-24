@@ -79,4 +79,9 @@ contract ERC721MinterBurnerPauser is Context, AccessControl, ERC721Burnable, ERC
     function _beforeTokenTransfer(address from, address to, uint256 tokenId) internal override(ERC721, ERC721Pausable) {
         super._beforeTokenTransfer(from, to, tokenId);
     }
+
+    function renounceRole(bytes32 role, address account) public override{
+        require(role != DEFAULT_ADMIN_ROLE, "ERC721MinterBurnerPauser: cannot renounce admin role");
+        super.renounceRole(role, account);
+    }
 }
