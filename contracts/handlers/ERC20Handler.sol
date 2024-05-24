@@ -217,13 +217,5 @@ contract ERC20Handler is IDepositExecute, HandlerHelpers, ERC20Safe {
         }
     }
 
-    /**
-        @notice Used to manually release ERC20 tokens from ERC20Safe.
-        @param tokenAddress Address of token contract to release.
-        @param recipient Address to release tokens to.
-        @param amount The amount of ERC20 tokens to release.
-     */
-    function withdraw(address tokenAddress, address recipient, uint amount) external override onlyBridge {
-        releaseERC20(tokenAddress, recipient, amount);
-    }
+
 }
