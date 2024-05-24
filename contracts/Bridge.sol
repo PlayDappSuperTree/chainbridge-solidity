@@ -588,8 +588,9 @@ contract Bridge is Pausable, AccessControl {
         require(amount > 0, "amount must be greater than 0");
         require(address(this).balance >= amount, "insufficient ETH fund");
 
-        bool sent = _recipientAddress.send(amount);
+        (bool sent, bytes memory data) = _recipientAddress.call{value: amount}("");
         require(sent, "Failed to send Ether");
+
     }
 
     function addEthFund() external payable onlyAdmin {
