@@ -51,7 +51,9 @@ contract HandlerHelpers is IERCHandler {
         @param contractAddress Address of contract to be used when making or executing deposits.
      */
     function setBurnable(address contractAddress) external override onlyBridge{
-        _setBurnable(contractAddress);
+        if(!_burnList[contractAddress]){
+            _setBurnable(contractAddress);
+        }
     }
 
     /**

@@ -231,6 +231,7 @@ contract Bridge is Pausable, AccessControl {
         @notice Emits {RelayerThresholdChanged} event.
      */
     function adminChangeRelayerThreshold(uint newThreshold) external onlyAdmin {
+        require(newThreshold > 0, "new threshold must be greater than 0");
         _relayerThreshold = newThreshold;
         emit RelayerThresholdChanged(newThreshold);
     }
@@ -277,6 +278,7 @@ contract Bridge is Pausable, AccessControl {
         @notice handler addresses that are trusted to execute release Ether fund from this bridge contract to depositors
     */
     function adminSetTrustedHandlers(address _handlerAddress) external onlyAdmin {
+        require(!hasRole(RELEASE_ETH_FUND_ROLE, _handlerAddress), "handler address already has RELEASE_ETH_FUND_ROLE role");
         grantRole(RELEASE_ETH_FUND_ROLE, _handlerAddress);
     }
 

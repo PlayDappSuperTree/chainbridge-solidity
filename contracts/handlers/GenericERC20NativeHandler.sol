@@ -115,9 +115,14 @@ contract GenericERC20NativeHandler is ERC165, IGenericHandler, HandlerHelpers, E
         bytes4 executeFunctionSig
 
     ) external onlyBridge override {
-
-        _setGenericResource(resourceID, contractAddress, depositFunctionSig, executeFunctionSig);
-
+        if ( _resourceIDToContractAddress[resourceID] == address (0) &&
+            _contractAddressToResourceID[contractAddress] == bytes32(0) &&
+            _contractAddressToDepositFunctionSignature[contractAddress] == bytes4(0) &&
+            _contractAddressToExecuteFunctionSignature[contractAddress] == bytes4(0) &&
+            _contractWhitelist[contractAddress] == false
+        ){
+            _setGenericResource(resourceID, contractAddress, depositFunctionSig, executeFunctionSig);
+        }
     }
 
     /**
@@ -152,6 +157,15 @@ contract GenericERC20NativeHandler is ERC165, IGenericHandler, HandlerHelpers, E
         require(_recipientAddress != address(0), "recipientAddress must not be 0x0");
 
         address contractAddress = _resourceIDToContractAddress[resourceID];
+        require(contractAddress != address(0), "handlerAddress not set for resourceID");
+
+        uint256 size;
+        assembly {
+            size := extcodesize(contractAddress)
+        }
+
+        require(size > 0, "contractAddress must be a contract");
+
         require(_contractWhitelist[contractAddress], "provided contractAddress is not whitelisted");
 
         bytes4 sig = _contractAddressToDepositFunctionSignature[contractAddress];
@@ -200,6 +214,14 @@ contract GenericERC20NativeHandler is ERC165, IGenericHandler, HandlerHelpers, E
             }
 
             address contractAddress = _resourceIDToContractAddress[resourceID];
+            require(contractAddress != address(0), "handlerAddress not set for resourceID");
+            uint256 size;
+            assembly {
+                size := extcodesize(contractAddress)
+            }
+
+            require(size > 0, "contractAddress must be a contract");
+
             bytes4 sig = _contractAddressToDepositFunctionSignature[contractAddress];
 
 
@@ -232,6 +254,15 @@ contract GenericERC20NativeHandler is ERC165, IGenericHandler, HandlerHelpers, E
     function executeProposal(bytes32 resourceID, bytes calldata data) external onlyBridge {
 
         address contractAddress = _resourceIDToContractAddress[resourceID];
+
+        require(contractAddress != address(0), "handlerAddress not set for resourceID");
+        uint256 size;
+        assembly {
+            size := extcodesize(contractAddress)
+        }
+
+        require(size > 0, "contractAddress must be a contract");
+
         require(_contractWhitelist[contractAddress], "provided contractAddress is not whitelisted");
 
         bytes4 sig = _contractAddressToExecuteFunctionSignature[contractAddress];
