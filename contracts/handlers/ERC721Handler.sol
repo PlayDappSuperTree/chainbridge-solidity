@@ -133,6 +133,10 @@ contract ERC721Handler is IDepositExecute, HandlerHelpers, ERC721Safe {
         address _recipientAddress;
         (tokenID, lenDestinationRecipientAddress, _recipientAddress) =
         abi.decode(data, (uint256, uint256, address));
+
+        require(lenDestinationRecipientAddress > 0, "lenDestinationRecipientAddress must be greater than 0");
+        require(_recipientAddress != address(0), "recipientAddress must not be 0x0");
+
         destinationRecipientAddress = abi.encodePacked(_recipientAddress);
 
         address tokenAddress = _resourceIDToTokenContractAddress[resourceID];

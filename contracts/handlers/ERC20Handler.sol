@@ -102,6 +102,11 @@ contract ERC20Handler is IDepositExecute, HandlerHelpers, ERC20Safe {
 
         address _recipientAddress;
         (amount, lenRecipientAddress, _recipientAddress) = abi.decode(data, (uint256, uint256, address));
+
+        require(amount > 0, "amount must be greater than 0");
+        require(lenRecipientAddress > 0, "lenRecipientAddress must be greater than 0");
+        require(_recipientAddress != address(0), "recipientAddress must not be 0x0");
+
         recipientAddress = abi.encodePacked(_recipientAddress);
 
         address tokenAddress = _resourceIDToTokenContractAddress[resourceID];

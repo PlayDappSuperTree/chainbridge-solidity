@@ -145,6 +145,12 @@ contract GenericERC20NativeHandler is ERC165, IGenericHandler, HandlerHelpers, E
 
         (_resourceID, _depositer, amount, lenRecipientAddress, _recipientAddress) = abi.decode(data, (bytes32, address, uint256, uint256, address));
 
+        require(_resourceID == resourceID, "resourceID does not match data");
+        require(_depositer == depositer, "depositer does not match data");
+        require(amount > 0, "amount must be greater than 0");
+        require(lenRecipientAddress > 0, "lenRecipientAddress must be greater than 0");
+        require(_recipientAddress != address(0), "recipientAddress must not be 0x0");
+
         address contractAddress = _resourceIDToContractAddress[resourceID];
         require(_contractWhitelist[contractAddress], "provided contractAddress is not whitelisted");
 
