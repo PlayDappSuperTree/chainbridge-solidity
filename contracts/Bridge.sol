@@ -382,7 +382,7 @@ contract Bridge is Pausable, AccessControl {
                 //                    address _recipientAddress;
 
                 (_resourceID, depositer, amount,,) = abi.decode(data, (bytes32, address, uint256, uint256, address));
-                require(amount <= msg.value, "amount should be less than msg.value");
+                require(amount == msg.value, "amount should be less than msg.value");
                 //proceed deposit
                 depositHandler.deposit(resourceID, destinationChainID, depositNonce, msg.sender, data);
                 emit Deposit(destinationChainID, resourceID, depositNonce);
