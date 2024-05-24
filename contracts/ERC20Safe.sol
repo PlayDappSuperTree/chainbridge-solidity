@@ -13,6 +13,8 @@ import "@openzeppelin/contracts/token/ERC20/ERC20Burnable.sol";
  */
 contract ERC20Safe {
     using SafeMath for uint256;
+
+    //using SafeERC20 for IERC20 call;
     using SafeERC20 for IERC20;
 
 
@@ -94,7 +96,6 @@ contract ERC20Safe {
         require(success, "ERC20: call failed");
 
         if (returndata.length > 0) {
-
             require(abi.decode(returndata, (bool)), "ERC20: operation did not succeed");
         }
     }
