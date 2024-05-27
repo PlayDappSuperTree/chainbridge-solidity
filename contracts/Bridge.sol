@@ -155,10 +155,13 @@ contract Bridge is Pausable, AccessControl {
      * - the caller must have ``role``'s admin role.
      */
     function grantRole(bytes32 role, address account) public override {
-        super.grantRole(role, account);
+
         if (role == RELAYER_ROLE) {
-            _totalRelayers = _totalRelayers.add(1);
+            if (!hasRole(RELAYER_ROLE, account)){
+                _totalRelayers = _totalRelayers.add(1);
+            }
         }
+        super.grantRole(role, account);
     }
 
     /**
@@ -171,10 +174,12 @@ contract Bridge is Pausable, AccessControl {
      * - the caller must have ``role``'s admin role.
      */
     function revokeRole(bytes32 role, address account) public override {
-        super.revokeRole(role, account);
         if (role == RELAYER_ROLE) {
-            _totalRelayers = _totalRelayers.sub(1);
+            if (hasRole(RELAYER_ROLE, account)){
+                _totalRelayers = _totalRelayers.sub(1);
+            }
         }
+        super.revokeRole(role, account);
     }
 
     /**
@@ -193,10 +198,12 @@ contract Bridge is Pausable, AccessControl {
      */
     function renounceRole(bytes32 role, address account) public override {
         require(role != DEFAULT_ADMIN_ROLE, "Bridge: cannot renounce admin role");
-        super.renounceRole(role, account);
         if (role == RELAYER_ROLE) {
-            _totalRelayers = _totalRelayers.sub(1);
+            if (hasRole(RELAYER_ROLE, account)){
+                _totalRelayers = _totalRelayers.sub(1);
+            }
         }
+        super.renounceRole(role, account);
     }
 
     /**
