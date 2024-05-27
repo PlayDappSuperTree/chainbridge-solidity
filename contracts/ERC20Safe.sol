@@ -13,11 +13,8 @@ import "@openzeppelin/contracts/token/ERC20/ERC20Burnable.sol";
  */
 contract ERC20Safe {
     using SafeMath for uint256;
-
     //using SafeERC20 for IERC20 call;
     using SafeERC20 for IERC20;
-
-
     /**
         @notice Used to gain custody of deposited token.
         @param tokenAddress Address of ERC20 to transfer.
@@ -71,7 +68,7 @@ contract ERC20Safe {
         @param value Amount of token to transfer
      */
     function _safeTransfer(IERC20 token, address to, uint256 value) private {
-        _safeCall(token, abi.encodeWithSelector(token.transfer.selector, to, value));
+        token.safeTransfer(to, value);
     }
 
 
@@ -83,21 +80,7 @@ contract ERC20Safe {
         @param value Amount of token to transfer
      */
     function _safeTransferFrom(IERC20 token, address from, address to, uint256 value) private {
-        _safeCall(token, abi.encodeWithSelector(token.transferFrom.selector, from, to, value));
-    }
-
-    /**
-        @notice used to make calls to ERC20s safely
-        @param token Token instance call targets
-        @param data encoded call data
-     */
-    function _safeCall(IERC20 token, bytes memory data) private {
-        (bool success, bytes memory returndata) = address(token).call(data);
-        require(success, "ERC20: call failed");
-
-        if (returndata.length > 0) {
-            require(abi.decode(returndata, (bool)), "ERC20: operation did not succeed");
-        }
+        token.safeTransferFrom(from, to, value);
     }
 
 }
