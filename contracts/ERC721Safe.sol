@@ -15,7 +15,7 @@ contract ERC721Safe is IERC721Receiver {
 
 
     /**
-        @notice Used to gain custoday of deposited token.
+        @notice Used to gain custody of deposited token.
         @param tokenAddress Address of ERC721 to transfer.
         @param owner Address of current token owner.
         @param recipient Address to transfer token to.
