@@ -17,6 +17,7 @@ import "@openzeppelin/contracts/introspection/ERC165Checker.sol";
  */
 contract Bridge is Pausable, AccessControl {
     using SafeMath for uint256;
+    using SafeMath for uint64;
 
     uint8   public _chainID;
     uint256 public _relayerThreshold;
@@ -361,8 +362,8 @@ contract Bridge is Pausable, AccessControl {
 
         address handler = _resourceIDToHandlerAddress[resourceID];
         require(handler != address(0), "resourceID not mapped to handler");
-
-        uint64 depositNonce = ++_depositCounts[destinationChainID];
+        _depositCounts[destinationChainID] = uint64(_depositCounts[destinationChainID].add(1));
+        uint64 depositNonce = _depositCounts[destinationChainID];
         _depositRecords[depositNonce][destinationChainID] = data;
 
         IDepositExecute depositHandler = IDepositExecute(handler);
@@ -411,8 +412,8 @@ contract Bridge is Pausable, AccessControl {
 
         address handler = _resourceIDToHandlerAddress[resourceID];
         require(handler != address(0), "resourceID not mapped to handler");
-
-        uint64 depositNonce = ++_depositCounts[destinationChainID];
+        _depositCounts[destinationChainID] = uint64(_depositCounts[destinationChainID].add(1));
+        uint64 depositNonce = _depositCounts[destinationChainID];
         _depositRecords[depositNonce][destinationChainID] = data;
         IDepositExecute depositHandler = IDepositExecute(handler);
 
@@ -480,7 +481,7 @@ contract Bridge is Pausable, AccessControl {
         require(!_hasVotedOnProposal[nonceAndID][dataHash][msg.sender], "relayer already voted");
 
         if (uint(proposal._status) == 0) {
-            ++_totalProposals;
+            _totalProposals = _totalProposals.add(1);
             _proposals[nonceAndID][dataHash] = Proposal({
             _resourceID : resourceID,
             _dataHash : dataHash,
