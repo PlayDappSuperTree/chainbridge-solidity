@@ -109,27 +109,7 @@ contract ERC721Handler is IDepositExecute, HandlerHelpers, ERC721Safe {
         bytes memory destinationRecipientAddress;
         bytes memory metaData;
 
-//        assembly {
-//
-//        // Load tokenID from data + 32
-//            tokenID := calldataload(0xC4)
-//
-//        // Load length of recipient address from data + 96
-//            lenDestinationRecipientAddress := calldataload(0xE4)
-//        // Load free mem pointer for recipient
-//            destinationRecipientAddress := mload(0x40)
-//        // Store recipient address
-//            mstore(0x40, add(0x20, add(destinationRecipientAddress, lenDestinationRecipientAddress)))
-//
-//        // func sig (4) + destinationChainId (padded to 32) + depositNonce (32) + depositor (32) +
-//        // bytes lenght (32) + resourceId (32) + tokenId (32) + length (32) = 0xE4
-//
-//            calldatacopy(
-//                destinationRecipientAddress,    // copy to destinationRecipientAddress
-//                0xE4,                           // copy from calldata after destinationRecipientAddress length declaration @0xE4
-//                sub(calldatasize(), 0x104)       // copy size (calldatasize - (0xE4 + 0x20))
-//            )
-//        }
+
         address _recipientAddress;
         (tokenID, lenDestinationRecipientAddress, _recipientAddress) =
         abi.decode(data, (uint256, uint256, address));
